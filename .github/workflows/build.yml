@@ -30,6 +30,12 @@ jobs:
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           workload_identity_provider: projects/518432764157/locations/global/workloadIdentityPools/github/providers/my-repo
       
+      - name: Configure docker for GCP
+        run: gcloud auth configure-docker europe-north1-docker.pkg.dev
+
+      - name: Use account
+        run: gcloud config set account ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
       - name: Use Node.js 18
         uses: actions/setup-node@v4
         with:
@@ -37,9 +43,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Configure docker for GCP
-        run: gcloud auth configure-docker europe-north1-docker.pkg.dev
 
       - name: Build Docker image
         run: docker build -t europe-north1-docker.pkg.dev/${{ env.PROJECT_ID }}/app/nextjs-app:${{ github.sha }} .
