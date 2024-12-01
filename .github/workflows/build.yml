@@ -13,7 +13,7 @@ env:
   PROJECT_ID: tf-infra-experiment
 
 jobs:
-  apply:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     
@@ -50,8 +50,8 @@ jobs:
       - name: Push Docker image
         run: docker push europe-north1-docker.pkg.dev/${{ env.PROJECT_ID }}/app/nextjs-app:${{ github.sha }}
 
-      - name: Deploy PREVIEW to Cloud Run
-        id: deploy-preview
+      - name: Deploy App to Cloud Run
+        id: deploy-image
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: app
