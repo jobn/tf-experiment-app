@@ -1,0 +1,57 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PROJECT_ID: tf-infra-experiment
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - id: 'auth'
+        name: Configure GCP credentials
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: projects/518432764157/locations/global/workloadIdentityPools/github/providers/my-repo
+      
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build for production
+        run: npm run build --if-present
+
+      - name: Configure docker for GCP
+        run: gcloud auth configure-docker europe-north1-docker.pkg.dev
+
+      - name: Build Docker image
+        run: docker build -t europe-north1-docker.pkg.dev/${{ env.PROJECT_ID }}/app/nextjs-app:${{ github.sha }} .
+
+      - name: Push Docker image
+        run: docker push europe-north1-docker.pkg.dev/${{ env.PROJECT_ID }}/app/nextjs-app:${{ github.sha }}
+
+      - name: Deploy PREVIEW to Cloud Run
+        id: deploy-preview
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: app
+          image: europe-north1-docker.pkg.dev/${{ env.PROJECT_ID }}/app/nextjs-app:${{ github.sha }}
